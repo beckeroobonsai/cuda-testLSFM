@@ -92,8 +92,8 @@ int main(int argc, char *argv[])
 
 	float errorDiff = hostLS._getDifference();
 	cout<<"\nAvgerage difference between CPU and GPU Phi values: "<< errorDiff << " \n"<<endl;
-	cout<<"\nCPU computation time in seconds: "<< secondsC << " \n"<<endl;
-	cout<<"\nGPU computation time in seconds: "<< secondsG << " \n"<<endl;
+	cout<<"\nCPU computation time: "<< secondsC << " \n"<<endl;
+	cout<<"\nGPU computation time: "<< secondsG << " \n"<<endl;
 
     devLS._extendVelocityF(&hostLS); 
 
