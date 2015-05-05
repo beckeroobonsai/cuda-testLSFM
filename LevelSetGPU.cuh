@@ -44,7 +44,7 @@ GLOBAL void reinitPhi(float* phi, int pitch, float* psi, int* voxelList, float* 
 
 
 GLOBAL void FastMarchInit(float* phi, int pitch, int* Accept, int Apitch, float* Fext, int Nx, int Ny, float dx, float dy, float Xmin, float Ymin);
-GLOBAL void FastMarchVelocity(float* phi, int pitch, int* Accept, int Apitch, float* Fext, int* AcceptNew, float* FextNew, int Nx, int Ny, float dx, float dy);
+GLOBAL void FastMarchVelocity(int count, float* phi, int pitch, int* Accept, int Apitch, float* Fext, int* AcceptNew, float* FextNew, int Nx, int Ny, float dx, float dy);
 
 
 

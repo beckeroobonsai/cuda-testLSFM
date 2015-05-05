@@ -68,7 +68,7 @@ void LevelSetCUDA::_setup(LevelSet* hostLS)
 
 
 
-	printf("\nSetup complete. \n" );
+	printf("\nSetup complete. dx= %3.3f\n", dx );
 
  
 }//_setup
@@ -150,8 +150,8 @@ void LevelSetCUDA::_reinitFastMarchNewton(LevelSet* hostLS )
 	printf("Reinitizing levelset using Fast Marching with Newton solver\n");
 
 
-	dim3 dimBlock2(8,16);
-	dim3 dimGrid2((Nx-1)/8 + 1,(Ny-1)/16 + 1);
+	//dim3 dimBlock2(8,16);
+	//dim3 dimGrid2((Nx-1)/8 + 1,(Ny-1)/16 + 1);
 
     //int* ListVoxels = new int[Nx*Ny];     // use for debugging
     //float* ListCoeff = new float[16*Nx*Ny]; //only need these on gpu
@@ -167,7 +167,8 @@ void LevelSetCUDA::_reinitFastMarchNewton(LevelSet* hostLS )
     //HANDLE_ERROR( cudaMemcpy2D(Psi, PsiPitchInbytes, hostLS->PhiGPU, Ny*sizeof(float),
 			//	 Ny*sizeof(float), Nx, cudaMemcpyHostToDevice) ); 
 			
-   HANDLE_ERROR( cudaMemcpy(hostLS->PhiGPU, Psi, Ny*Nx*sizeof(float), cudaMemcpyDeviceToHost)  );			   
+
+   HANDLE_ERROR( cudaMemcpy(Psi, hostLS->PhiGPU, Ny*Nx*sizeof(float), cudaMemcpyHostToDevice)  );
 
     printf("Starting to get voxels and coefficients\n");
     
@@ -175,13 +176,13 @@ void LevelSetCUDA::_reinitFastMarchNewton(LevelSet* hostLS )
     int PhiPitch = Nx;
 
     // get interpolating polynomial coefficients and the active set voxels
-    getVoxels<<<dimGrid2, dimBlock2>>>(Psi, PsiPitch, devListVoxels, devListCoeff, Nx, Ny);   
+    getVoxels<<<dimGrid, dimBlock>>>(Psi, PsiPitch, devListVoxels, devListCoeff, Nx, Ny);   
     cudaDeviceSynchronize();
 
     printf("Finished getting voxels and coefficients\n");
 
     // re-initialize each grid point
-    float thres = 0.01;
+    float thres = 0.0001;
     
     reinitPhi<<<dimGrid, dimBlock>>>(Phi, PhiPitch, Psi, devListVoxels, devListCoeff, Nx, Ny, dx, thres);
     cudaDeviceSynchronize() ;
@@ -227,14 +228,15 @@ void LevelSetCUDA::_extendVelocityF(LevelSet* hostLS )
 	
 	
 	//printf("\n%d,  %d\t", PhiPitch, AccptPitch);
-	/*
+	
 
     	int   * newA, * oldA;
      	float * newF, * oldF;  
 	
 	int count;
 	bool toggle=true;
-	for (count=1 ; count<2 ; ++count){
+	int countMax = Nx*floor(log(Nx)); //Not sure this is the upperbound. Best guess based on algorithm.
+	for (count=1 ; count<countMax ; ++count){
 		if (toggle){
 		toggle = false;
 		oldA = Accept;
@@ -249,19 +251,22 @@ void LevelSetCUDA::_extendVelocityF(LevelSet* hostLS )
 		newF = Fspeed;		
 		}
 	
-		FastMarchVelocity<<<dimGrid, dimBlock>>>(Phi, PhiPitch, oldA, AccptPitch, oldF, newA, newF, Nx, Ny, dx, dy);
+		FastMarchVelocity<<<dimGrid, dimBlock>>>(count, Phi, PhiPitch, oldA, AccptPitch, oldF, newA, newF, Nx, Ny, dx, dy);
 		HANDLE_ERROR( cudaDeviceSynchronize() );
-		cudaThreadSynchronize();		
+		cudaThreadSynchronize(); //needed this to synchronize correctly between iterations		
 	} 
 	cudaDeviceSynchronize() ;
 	
-	*/
-
+	
 
 
       HANDLE_ERROR( cudaMemcpy(hostLS->PhiGPU, Phi, Ny*Nx*sizeof(float), cudaMemcpyDeviceToHost)  );
-      HANDLE_ERROR( cudaMemcpy(hostLS->Fext, Fspeed, Ny*Nx*sizeof(float), cudaMemcpyDeviceToHost)  );
-      HANDLE_ERROR( cudaMemcpy(hostLS->Accept, Accept, Ny*Nx*sizeof(float), cudaMemcpyDeviceToHost)  );
+      HANDLE_ERROR( cudaMemcpy(hostLS->Fext, newF, Ny*Nx*sizeof(float), cudaMemcpyDeviceToHost)  );
+      HANDLE_ERROR( cudaMemcpy(hostLS->Accept, newA, Ny*Nx*sizeof(float), cudaMemcpyDeviceToHost)  );
+
+//     HANDLE_ERROR( cudaMemcpy(hostLS->PhiGPU, Phi, Ny*Nx*sizeof(float), cudaMemcpyDeviceToHost)  );
+//     HANDLE_ERROR( cudaMemcpy(hostLS->Fext, Fspeed, Ny*Nx*sizeof(float), cudaMemcpyDeviceToHost)  );
+//     HANDLE_ERROR( cudaMemcpy(hostLS->Accept, Accept, Ny*Nx*sizeof(float), cudaMemcpyDeviceToHost)  );
 	
 	
 //    size_t PhiPitchInbytes = (size_t)(PhiPitch * sizeof(float));

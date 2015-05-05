@@ -68,7 +68,7 @@ __global__ void FastMarchInit(float* phi, int pitch, int* Accept, int Apitch, fl
 
 
 
-__global__ void FastMarchVelocity(float* phi, int pitch, int* Accept, int Apitch, float* Fext, int* AcceptNew, float* FextNew, int Nx, int Ny, float dx, float dy)
+__global__ void FastMarchVelocity(int count, float* phi, int pitch, int* Accept, int Apitch, float* Fext, int* AcceptNew, float* FextNew, int Nx, int Ny, float dx, float dy)
 {
 
 	int index_x = blockIdx.x * blockDim.x + threadIdx.x;    
@@ -87,6 +87,12 @@ __global__ void FastMarchVelocity(float* phi, int pitch, int* Accept, int Apitch
 	float F[5]  = { Fext[idx], Fext[idx-pitch], Fext[idx+1], Fext[idx+pitch], Fext[idx-1] } ;
 	float P[5]  = { phi[idx], phi[idx-pitch], phi[idx+1], phi[idx+pitch], phi[idx-1] } ;
 			
+
+	//Dxm = (row==0)    ? 0 : -F[1] * abs(A[1]) * (P[0] - P[1])/dx ;
+	//Dxp = (row==Nx-1) ? 0 : F[3] * abs(A[3]) * (P[3] - P[0])/dx ;
+	//Dym = (col==0)    ? 0 : -F[4] * abs(A[4]) * (P[0] - P[4])/dy ;
+	//Dyp = (col==Ny-1) ? 0 : F[2] * abs(A[2]) * (P[2] - P[0])/dy ;
+
 	
 	Dxm = (row==0)    ? 0 : abs(A[1]) * (P[0] - P[1])/dx ;
 	Dxp = (row==Nx-1) ? 0 : abs(A[3]) * (P[3] - P[0])/dx ;
@@ -125,17 +131,22 @@ __global__ void FastMarchVelocity(float* phi, int pitch, int* Accept, int Apitch
 	}			
 	
 
-	if (A[0]>2){
-		printf("\nWHY!!!??? \t (r,c)=%d,%d\t , %d, %d, \t F=%3.3f, A=%d  \n", row,col, idxA, idx, F[0], A[0] );
-	}	
+
 
 	
-	if ( row<Nx && col<Ny && A[0]!=1  && tentative>0 && (Dx+Dy)>0 ) {		
+	//if ( row<Nx && col<Ny && A[0]!=1  && tentative>0 && (Dx+Dy)>0 ) {	
+	if ( row<Nx && col<Ny && A[0]!=1  && tentative>0  ) {
+	//if ( row<Nx && col<Ny && A[0]!=1  ) {		
 		F[0] = (FDx + FDy)/(Dx + Dy + DBL_EPSILON);
 		A[0] = -1; 
 	} 
 
-	__syncthreads();
+	//__syncthreads();
+
+//	if (row<Nx && col<Ny && tentative==0 && count>49){
+//		printf("\n count= %d\t, (r,c)=(%d,%d)\t A= {%d,%d,%d,%d} \n ", count, row, col, A[1], A[2], A[3], A[4] );
+//	}
+
 	
 //	if (A[0]>2){
 //		printf("\nWHY!!!??? \t (r,c)=%d,%d\t , %d, %d, \t F=%3.3f, A=%d  \n", row,col, idxA, idx, F[0], A[0] );

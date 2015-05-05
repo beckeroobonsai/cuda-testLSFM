@@ -59,51 +59,64 @@ int main(int argc, char *argv[])
 
 
     clock_t t1,t2;
-    float diff, secondsG, secondsC;
+    float diff1, diff2, secondsG, secondsC;
     
     t1=clock();
     devLS._reinitFastMarchNewton(&hostLS); // Launch reinitialization of LS on GPU by FastMarching Newton solve method
     t2=clock();
-    diff = ((float)t2-(float)t1);
-    secondsG = diff / CLOCKS_PER_SEC;
+    diff1 = ((float)t2-(float)t1);
+    secondsG = diff1 / (float)CLOCKS_PER_SEC;
     //cout<<"\nGPU reinitialization by FastMarching Newton solver method took "<< secondsG << " seconds.\n"<<endl;
     devLS._transferPhiToHost(&hostLS);
+
+    /*
     if(h_Nx<30)
     {
         cout<<"\nPress RETURN to continue\n "<<endl;
         cin.get();
 	hostLS._TestOutput(hostLS.PhiGPU, hostLS.Nx, hostLS.Ny);     // Check results on host from GPU
     }
+    */
+
 	
+    
+
 
     t1=clock();
     hostLS._Reinitialize(); // Launch reinitialization of LS on CPU by FastMarching narrowband heap method
     t2=clock();
-    diff = ((float)t2-(float)t1);
-    secondsC = diff / CLOCKS_PER_SEC;
+    diff2 = ((float)t2-(float)t1);
+    secondsC = diff2 / (float)CLOCKS_PER_SEC;
     //cout<<"\nGPU reinitialization by FastMarching Newton solver method took "<< secondsC << " seconds.\n"<<endl;
+    /*
     if(h_Nx<30)
     {
 	cout<<"\nPress RETURN to continue\n "<<endl;
 	cin.get();
 	hostLS._TestOutput(hostLS.PhiCPU, hostLS.Nx, hostLS.Ny);   // Check results on host from CPU  
     }    
-  
+    */
 
 	float errorDiff = hostLS._getDifference();
 	cout<<"\nAvgerage difference between CPU and GPU Phi values: "<< errorDiff << " \n"<<endl;
-	cout<<"\nCPU computation time in seconds: "<< secondsC << " \n"<<endl;
-	cout<<"\nGPU computation time in seconds: "<< secondsG << " \n"<<endl;
+	//cout<<"\nCPU computation time in seconds: "<< secondsC << " \n"<<endl;
+	//cout<<"\nGPU computation time in seconds: "<< secondsG << " \n"<<endl;
+
+    printf("\nCPU computation time in seconds: %3.8f\n", diff2); //secondsC);
+    printf("\nGPU computation time in seconds: %3.8f\n", diff1); //secondsG);
+
+    printf("\n The GPU was %3.3f times faster than the CPU calculation.\n", diff2/diff1 );
 
     devLS._extendVelocityF(&hostLS); 
 
+    
 
     // Pass data back to host and delete device memory
     devLS._teardown(&hostLS);
 
     
     hostLS._TestOutputInt(hostLS.Accept, hostLS.Nx, hostLS.Ny);
-
+    hostLS._TestOutput(hostLS.Fext, hostLS.Nx, hostLS.Ny);
     
 
 
